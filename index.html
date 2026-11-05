@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0f2b49">
+  <meta name="theme-color" content="#102B49">
   <title>Tu Próxima Parada | Rutas de transporte</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -26,14 +26,14 @@
     <aside class="sidebar">
       <div class="side-inner">
         <h1>¿A dónde quieres ir?</h1>
-        <p class="intro">Ingresa tu punto de partida y destino para explorar opciones de transporte.</p>
+        <p class="intro">Busca lugares reconocidos y consulta si alguna de las líneas registradas conecta tu origen con tu destino.</p>
 
         <form id="searchForm">
           <div class="field">
             <label for="origin">DESDE</label>
             <div class="input-wrap">
               <span class="dot" aria-hidden="true"></span>
-              <input id="origin" list="places" autocomplete="off" value="Plaza 24 de Septiembre" placeholder="Ej. Plaza 24 de Septiembre" required>
+              <input id="origin" list="places" autocomplete="off" value="" placeholder="Ej. Pollos Toti" required>
               <button type="button" class="clear" data-clear="origin" aria-label="Borrar origen">×</button>
             </div>
             <button class="swap" type="button" id="swapBtn" aria-label="Intercambiar origen y destino" title="Intercambiar">↕</button>
@@ -42,56 +42,120 @@
             <label for="destination">HASTA</label>
             <div class="input-wrap">
               <span class="dot end" aria-hidden="true"></span>
-              <input id="destination" list="places" autocomplete="off" value="Universidad Autónoma Gabriel René Moreno" placeholder="Ej. Universidad, mercado, hospital" required>
+              <input id="destination" list="places" autocomplete="off" value="" placeholder="Ej. El chico Fresa" required>
               <button type="button" class="clear" data-clear="destination" aria-label="Borrar destino">×</button>
             </div>
           </div>
-          <datalist id="places">
-            <option value="Plaza 24 de Septiembre"></option>
-            <option value="Universidad Autónoma Gabriel René Moreno"></option>
-            <option value="Terminal Bimodal"></option>
-            <option value="Mercado Los Pozos"></option>
-            <option value="Plan 3000"></option>
-            <option value="Cine Center"></option>
-            <option value="Parque Urbano"></option>
-            <option value="Hospital Japonés"></option>
-          </datalist>
-          <button class="primary" type="submit">⌕ &nbsp; Buscar rutas</button>
+          <datalist id="places"></datalist>
+          <button class="primary" type="submit">⌕ &nbsp; Buscar micros sugeridos</button>
         </form>
 
         <div class="filters" aria-label="Filtrar transporte">
           <button class="filter active" data-filter="Todos">Todas</button>
           <button class="filter" data-filter="Linea">🚌 Línea</button>
-          <button class="filter" data-filter="Trufi">🚕 Trufi</button>
-          <button class="filter" data-filter="Combinado">⇄ Combinado</button>
+
         </div>
 
         <div class="results-head">
-          <h2>Resultados</h2>
+          <h2>Líneas disponibles</h2>
           <select id="sortSelect" aria-label="Ordenar resultados">
             <option value="time">Más rápido</option>
             <option value="walk">Menos caminata</option>
             <option value="transfers">Menos transbordos</option>
           </select>
         </div>
-        <p class="status" id="resultStatus" aria-live="polite">Opciones de demostración · Santa Cruz de la Sierra</p>
+        <p class="status" id="resultStatus" aria-live="polite">Busca dos lugares para ver micros sugeridos.</p>
         <section id="results" aria-label="Opciones de ruta"></section>
         <button class="mobile-map-button" id="showMapBtn" type="button">Ver recorrido en el mapa ↓</button>
-        <div class="notice"><strong>Versión MVP:</strong> los recorridos, tiempos, líneas y paradas mostrados son datos de ejemplo. Verifica la información local antes de viajar. La búsqueda de lugares es demostrativa; no calcula rutas reales de transporte.</div>
+        <div class="notice"><strong>Importante:</strong> Los lugares reconocidos de OpenStreetMap y los que agregaste se guardan en la base de datos local del navegador para usarlos en el buscador. La Línea 68 solo aparece como sugerencia si conecta ambos lugares; el mapa muestra únicamente el tramo entre origen y destino, nunca el recorrido completo por defecto. Los lugares cercanos no necesariamente son paradas oficiales.</div>
       </div>
     </aside>
 
     <section class="map-area" aria-label="Mapa de recorridos">
       <div id="map" role="application" aria-label="Mapa interactivo"></div>
-      <div class="map-badge"><strong>Mapa de recorridos</strong><span id="mapSummary">Santa Cruz de la Sierra · Bolivia</span></div>
+      <div class="map-badge"><strong>Micros sugeridos</strong><span id="mapSummary">Busca un origen y un destino</span></div>
+      <div class="detected-panel" id="detectedPlaces" aria-live="polite"><strong>Base de datos del buscador</strong><p>Preparando lugares guardados…</p></div>
       <div class="legend">
-        <strong>Líneas del recorrido</strong>
-        <div class="legend-row"><span class="legend-dot blue"></span> Línea de inicio</div>
-        <div class="legend-row"><span class="legend-dot purple"></span> Conexión / transbordo</div>
-        <div class="legend-row"><span class="legend-dot green"></span> Punto de partida</div>
-        <div class="legend-row"><span class="legend-dot red"></span> Destino</div>
+        <strong>Puntos de referencia</strong>
+        <div class="legend-row"><span class="legend-dot blue"></span> Mercado / referencia</div>
+        <div class="legend-row"><span class="legend-dot purple"></span> Ubicación aproximada</div>
+        <div class="legend-row"><span class="legend-dot green"></span> Origen elegido</div>
+        <div class="legend-row"><span class="legend-dot red"></span> Destino elegido</div>
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <button class="about-trigger" id="aboutOpen" type="button" aria-haspopup="dialog" aria-controls="aboutDialog">
+      <span class="about-trigger-icon" aria-hidden="true">✦</span>
+      Conócenos
+      <span class="about-trigger-arrow" aria-hidden="true">↑</span>
+    </button>
+  </footer>
+
+  <dialog class="about-dialog" id="aboutDialog" aria-labelledby="aboutTitle">
+    <div class="about-shell">
+      <div class="about-hero">
+        <div class="about-mark" aria-hidden="true"><img src="Logotipo.jpeg" width="70" height="70" alt=""></div>
+        <div class="about-hero-copy">
+          <p class="about-eyebrow">INNOVANDO EL APRENDIZAJE PARA EL FUTURO DIGITAL</p>
+          <h2 id="aboutTitle">Tu Próxima Parada</h2>
+          <p class="about-tagline">Muévete fácil. Llega más lejos.</p>
+        </div>
+        <button class="about-close" id="aboutClose" type="button" aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="about-content">
+        <p class="about-intro">
+          Somos un proyecto de innovación tecnológica que busca facilitar la movilidad en Santa Cruz
+          de la Sierra, reuniendo en un solo lugar información clara y organizada sobre las rutas
+          del transporte público.
+        </p>
+
+        <div class="about-card-grid">
+          <article class="about-card mission-card">
+            <span class="about-card-kicker">NUESTRO PROPÓSITO</span>
+            <h3>Misión</h3>
+            <p>
+              Facilitar el acceso a información clara, rápida y accesible sobre las rutas del
+              transporte público, ayudando a las personas a identificar qué línea utilizar y a
+              planificar sus desplazamientos con menos confusión y pérdida de tiempo.
+            </p>
+          </article>
+
+          <article class="about-card vision-card">
+            <span class="about-card-kicker">HACIA DÓNDE VAMOS</span>
+            <h3>Visión</h3>
+            <p>
+              Convertirnos en una herramienta digital de apoyo para la movilidad urbana, ampliando
+              progresivamente la cobertura de rutas y funcionalidades para beneficiar a más
+              ciudadanos y, a futuro, llegar a otras zonas o ciudades.
+            </p>
+          </article>
+        </div>
+
+        <section class="about-objectives">
+          <span class="about-card-kicker">LO QUE QUEREMOS LOGRAR</span>
+          <h3>Objetivos</h3>
+          <p class="objective-general">
+            <strong>Objetivo general:</strong> Desarrollar una plataforma web que oriente a los
+            usuarios sobre qué línea de micro utilizar para llegar a un destino dentro de Santa Cruz
+            de la Sierra.
+          </p>
+          <div class="objective-list">
+            <div class="objective-item"><span>01</span><p>Crear una base de datos con rutas de diferentes líneas de micros.</p></div>
+            <div class="objective-item"><span>02</span><p>Implementar un buscador por nombres oficiales de lugares y avenidas.</p></div>
+            <div class="objective-item"><span>03</span><p>Mostrar una o varias líneas recomendadas según el destino.</p></div>
+            <div class="objective-item"><span>04</span><p>Reducir el tiempo necesario para planificar un recorrido urbano.</p></div>
+          </div>
+        </section>
+
+        <p class="about-source-note">
+          Esta página web aun se encuentra en desarrollo. Poseemos lastimosamente una linea. Contactanos al +591 57473968 para ayudarnos en este progreso.
+        </p>
+      </div>
+    </div>
+  </dialog>
+
 </body>
 </html>
